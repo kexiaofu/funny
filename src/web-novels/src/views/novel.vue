@@ -21,12 +21,25 @@
         </div>
       </div>
     </div>
+    <div>{{item.type | types}}</div>
   </div>
 </template>
 <script>
   import api from '../api/api';
   export default {
     name:'novel',
+    filters:{
+      types(type){
+        let itype = ''
+        switch (type) {
+          case 'xxx':
+            itype = 'sss';
+            break;
+        }
+        return itype;
+
+      }
+    },
     data(){
       return {
         novelName:'',

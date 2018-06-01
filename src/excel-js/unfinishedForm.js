@@ -1,23 +1,30 @@
 /*
 * 2018-5-1
 * 流转中状态计算，出差，病假，年假等
+* 必要参数：
 *
+*   holidays,
+*   sDay,
+*   eDay,
+*   month
 * */
 let xlsx = require('node-xlsx').default,
     fs = require('fs');
 
-const unfinishedForm = xlsx.parse(`${__dirname}/excel/excel-unfinishedForm/unfinishedForm.xls`);
+let month = 5;
+
+const unfinishedForm = xlsx.parse(`${__dirname}/excel/excel-unfinishedForm/unfinishedForm-${month}.xls`);
 
 let resourceData = unfinishedForm[0]['data'],
-    tripData = [],
-    illData = [],
-    annualLeaveData = [],
+    tripData = [],//出差
+    illData = [],//带薪病假
+    annualLeaveData = [],//年假
     other = [],
     tempArr = [];
 
-let holidays = [1,5,6,7,15,21,22,29,30],
-    sDay = '2018-4-1',
-    eDay = '2018-4-30',
+let holidays = [1,5,6,13,19,20,27],
+    sDay = '2018-5-1 0:0:0',
+    eDay = '2018-5-31 23:59:59',
     startDay = new Date(sDay).getTime(),
     endDay = new Date(eDay).getTime();
 
@@ -71,8 +78,10 @@ for(let row in resourceData) {
                         tripData[i].date = Array.from(new Set([...tripData[i].date.concat(tempArr)]));
                         console.log(tripData[i].date)
                         tripData[i].count =  tripData[i].date.length;
-                        tripData[i].sourceDate.push([startDate,endDate])
-                        break;
+                        tripData[i].sourceDate.push([startDate,endDate]);
+
+
+                      break;
                     }
                 }
                 if(!hadThisOne) {
@@ -82,7 +91,8 @@ for(let row in resourceData) {
                         name:name,
                         date:tempArr,
                         sourceDate:[[startDate,endDate]],
-                        count:tempArr.length
+                        count:tempArr.length,
+                        type:resourceData[row][4]
                     })
                 }
                 break;
@@ -104,7 +114,8 @@ for(let row in resourceData) {
                         name:name,
                         date:tempArr,
                         sourceDate:[[startDate,endDate]],
-                        count:tempArr.length
+                        count:tempArr.length,
+                        type:resourceData[row][4]
                     })
                 }
                 break;
@@ -126,40 +137,39 @@ for(let row in resourceData) {
                         name:name,
                         date:tempArr,
                         sourceDate:[[startDate,endDate]],
-                        count:tempArr.length
+                        count:tempArr.length,
+                        type:resourceData[row][4]
                     })
                 }
-                break;
-            case '年假(销假)':
-                for(let i=other.length-1;i>=0;i--) {
-                    if(id === other[i].id){
-                        hadThisOne = true;
-                        tempArr = spreadArr(splitValue(startDate),splitValue(endDate));
-                        other[i].date = Array.from(new Set([...other[i].date.concat(tempArr)]));
-                        other[i].count =  other[i].date.length;
-                        other[i].sourceDate.push([startDate,endDate])
-                        break;
-                    }
-                }
-                if(!hadThisOne) {
-                    tempArr = spreadArr(splitValue(startDate),splitValue(endDate))
-                    other.push({
-                        id:id,
-                        name:name,
-                        date:tempArr,
-                        sourceDate:[[startDate,endDate]],
-                        count:tempArr.length
-                    })
-                }
-                console.log();
                 break;
             default:
+                for(let i=other.length-1;i>=0;i--) {
+                  if(id === other[i].id){
+                    hadThisOne = true;
+                    tempArr = spreadArr(splitValue(startDate),splitValue(endDate));
+                    other[i].date = Array.from(new Set([...other[i].date.concat(tempArr)]));
+                    other[i].count =  other[i].date.length;
+                    other[i].sourceDate.push([startDate,endDate])
+                    break;
+                  }
+                }
+                  if(!hadThisOne) {
+                    tempArr = spreadArr(splitValue(startDate),splitValue(endDate))
+                    other.push({
+                      id:id,
+                      name:name,
+                      date:tempArr,
+                      sourceDate:[[startDate,endDate]],
+                      count:tempArr.length,
+                      type:resourceData[row][4]
+                    })
+                  }
                 break;
         }
     }
 }
 
-fs.writeFile(`${__dirname}/json/tripData.json`,JSON.stringify(tripData),err=>{
+fs.writeFile(`${__dirname}/json/tripData-${month}.json`,JSON.stringify(tripData),err=>{
     if(err) return err;
     console.log('success write tripData.json')
 });
@@ -174,8 +184,8 @@ let unfinishedFormXls = [{
     name:'年假统计',
     data:[['编号','姓名','年假天数','工作日年假具体日期','原始年假跨度']]
 },{
-    name:'年假销假统计',
-    data:[['编号','姓名','年假销假天数','工作日年假销假具体日期','原始年假销假跨度']]
+    name:'其他统计',
+    data:[['编号','姓名','类别','非正常出勤天数','非正常出勤具体日期','非正常出勤跨度']]
 }]
 
 for(let i=0,l=tripData.length;i<l;i++) {
@@ -191,12 +201,12 @@ for(let i=0,l=annualLeaveData.length;i<l;i++) {
 }
 
 for(let i=0,l=other.length;i<l;i++) {
-    unfinishedFormXls[3].data.push([other[i].id,other[i].name,other[i].count,other[i].date,other[i].sourceDate])
+    unfinishedFormXls[3].data.push([other[i].id,other[i].name,other[i].type,other[i].count,other[i].date,other[i].sourceDate])
 }
 
 
 var buffer = xlsx.build(unfinishedFormXls);
-fs.writeFile(`${__dirname}/result/unfinishedFormCount.xlsx`,buffer,err=>{
+fs.writeFile(`${__dirname}/result/unfinishedFormCount-${month}.xlsx`,buffer,err=>{
     if(err) {
         console.log(err)
         return err

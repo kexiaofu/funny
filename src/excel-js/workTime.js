@@ -75,12 +75,26 @@ let calculateTime = (arr) =>{
     }
   })
 
-  let result = time.map(item=>{
-    return {
-      day:item.day,
-      time:[item.time[0],item.time[item.time.length-1]]
+  let otime={},wt=null,result=[];
+
+  for(let i=0,l=time.length;i<l;i++) {
+    otime = time[i];
+    wt = otime.time[0].split(':');
+    if(otime.time.length >1 && wt[0] >=0 && wt[0] <=5 && i!== 0) {
+      result[i-1].time[1] = otime.time[0];
+      result.push({
+        day:otime.day,
+        time:[otime.time[1],otime.time[otime.time.length-1]]
+      })
+    } else {
+      result.push({
+        day:otime.day,
+        time:[otime.time[0],otime.time[otime.time.length-1]]
+      })
     }
-  })
+
+
+  }
 
   return result;
 };
@@ -91,10 +105,9 @@ recordData(data3);
 
 console.log(dataIdList.length,peopleList.length);
 
-
 let dutyWorkDate = (arr) =>{
     let res = [];
-    for(let i=0,l=arr.length-1;i<l;i++) {
+    for(let i=0,l=arr.length;i<l;i++) {
       if(!(holidays.indexOf(+(arr[i].day.split('-')[2])) > -1)) {
         res.push(arr[i])
       }
@@ -105,6 +118,7 @@ let dutyWorkDate = (arr) =>{
 let workHours = 510;
 
 let addrP = [];
+let zeroHours = false;
 
 let calculateHour = (id,arr) =>{
   let w=null,h=null,differ=null,overWorkHoursCount=0,isZq = zqId.indexOf(+id)>-1?true:false,addr=isZq?'肇庆':'非肇庆';
@@ -116,32 +130,40 @@ let calculateHour = (id,arr) =>{
     w = item.time[0].split(':');
     h = item.time[1].split(':');
     if(!isZq) {
-      if(w[0] < 9) {
+
+      zeroHours = (w[0]>=0 && w[0]<=5);
+
+      if(w[0] < 9 && !zeroHours) {
         w[0] = 9;
         w[1] = 0;
       }
+      h[0] >=0 && h[0]<=5 && (h[0] += 24);
       differ = (h[0]-w[0]) * 60 + (h[1] - w[1]) - 90;
 
       item.workMin = differ;
       item.workHour = (differ / 60).toFixed(2);
+      item.hadFood = ((differ >= workHours) || zeroHours ) ? 1:0;
 
-      overWorkHoursCount += (differ >= workHours)?1:0;
+      overWorkHoursCount += (differ >= workHours )?1:0;
+      //overWorkHoursCount += zeroHours?1:0;
     } else {
       w[0] = +w[0];
-      if(w[0] > 8 || (w[0]===8 && w[1]>30 )) {
-        differ = (h[0]-w[0]) * 60 + (h[1] - w[1]) - 90;
-        item.workMin = differ;
-        item.workHour = (differ / 60).toFixed(2);
+      zeroHours = (w[0]>=0 && w[0]<=5);
 
-      } else {
+      if((w[0] > 8 || (w[0]===8 && w[1]>30 )) && !zeroHours) {
         w[0] = 8;w[1] = 30;
-        differ = (h[0]-w[0]) * 60 + (h[1] - w[1]) - 90;
-        item.workMin = differ;
-        item.workHour = (differ / 60).toFixed(2);
-        if(+h[0]>18 || (+h[0] === 18 && h[1]>=15)) {
-          overWorkHoursCount += 1;
-        }
       }
+      h[0] >=0 && h[0]<=5 && (h[0] += 24);
+      differ = (h[0]-w[0]) * 60 + (h[1] - w[1]) - 45;
+      item.workMin = differ;
+      item.workHour = (differ / 60).toFixed(2);
+
+      item.hadFood = ((differ >= workHours) || zeroHours ) ? 1:0;
+
+      overWorkHoursCount += (differ >= workHours )?1:0;
+      //overWorkHoursCount += zeroHours?1:0;
+
+
     }
 
     return item;
@@ -163,12 +185,22 @@ peopleList.map(item=>{
 
 });
 
+/*for(let i=peopleList.length-1;i>=0;i--) {
+  if(+peopleList[i].id === 124) {
+    console.log(peopleList[i].workTime)
+    break;
+  }
+}
+
+
+return*/
+
 let data = [{
   name:'全月上下班时间',
   data:[['工号','姓名','日期','上班时间','下班时间']]
 },{
   name:'工作日上下班时间',
-  data:[['工号','地区','姓名','日期','上班时间','下班时间','工时(分)','工时(时)']]
+  data:[['工号','地区','姓名','日期','上班时间','下班时间','工时(分)','工时(时)','餐补']]
 },{
   name:'工作日工时超8.5',
   data:[['工号','地区','姓名','工时总数']]
@@ -180,7 +212,7 @@ peopleList.map(item=>{
     data[0].data.push([item.id,item.name,time.day,time.time[0],time.time[1]])
   });
   item.workHours.map(time=>{
-    data[1].data.push([item.id,item.addr,item.name,time.day,time.time[0],time.time[1],time.workMin,time.workHour])
+    data[1].data.push([item.id,item.addr,item.name,time.day,time.time[0],time.time[1],time.workMin,time.workHour,time.hadFood])
   });
   data[2].data.push([item.id,item.addr,item.name,item.overWorkHoursCount])
 

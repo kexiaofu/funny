@@ -11,7 +11,7 @@
 let xlsx = require('node-xlsx').default,
     fs = require('fs');
 
-let month = 5;
+let month = 6;
 
 const unfinishedForm = xlsx.parse(`${__dirname}/excel/excel-unfinishedForm/unfinishedForm-${month}.xls`);
 
@@ -22,9 +22,10 @@ let resourceData = unfinishedForm[0]['data'],
     other = [],
     tempArr = [];
 
-let holidays = [1,5,6,13,19,20,27],
-    sDay = '2018-5-1 0:0:0',
-    eDay = '2018-5-31 23:59:59',
+let holidays = [2,3,10,16,17,18,24,30],
+    bigMonth=[1,3,5,7,8,10,12],
+    sDay = `2018-${month}-1 0:0:0`,
+    eDay = `2018-${month}-${bigMonth.indexOf(month)>-1?'31':'30'} 23:59:59`,
     startDay = new Date(sDay).getTime(),
     endDay = new Date(eDay).getTime();
 
@@ -212,6 +213,6 @@ fs.writeFile(`${__dirname}/result/unfinishedFormCount-${month}.xlsx`,buffer,err=
         return err
     }
     //fs.readFile('hospital.json')
-    console.log('success write unfinishedFormCount.xlsx')
+    console.log(`${__dirname}/result/unfinishedFormCount-${month}.xlsx success`)
 });
 

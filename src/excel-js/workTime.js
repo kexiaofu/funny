@@ -2,20 +2,22 @@
 *
 * 用于计算一天上班打卡以及下班打卡的时间
 *
+* 必须先将 xlx 格式转换为 xlsx 格式才开始工作，否则内存溢出
+*
 * */
 
 let xlsx = require('node-xlsx').default,
   fs = require('fs');
-//const workSheetsFromFile1 = xlsx.parse(`${__dirname}/excel/excel-work-time/5.1.xlsx`);
+//const workSheetsFromFile1 = xlsx.parse(`${__dirname}/excel/excel-work-time/6/6.1.xls`);
 //const workSheetsFromFile2 = xlsx.parse(`${__dirname}/excel/excel-work-time/5.2.xlsx`);
 //const workSheetsFromFile3 = xlsx.parse(`${__dirname}/excel/excel-work-time/5.3.xlsx`);
 //const zq = xlsx.parse(`${__dirname}/excel/excel-work-time/zq.xlsx`);
 
-let month = 5,
+let month = 6,
 
   dirPath = `${__dirname}/excel/excel-work-time/${month}`,
 
-  holidays = [1,5,6,13,19,20,27];
+  holidays = [2,3,10,16,17,18,24,30];
 
 let monthFiles=[],
   zqData=[],
@@ -71,12 +73,14 @@ let calculateTime = (arr) =>{
     }
 
     if(!sameDay) {
-      time.push({
-        day:strArr[0],
-        time:[strArr[1]]
-      })
+      if(strArr[1] !== undefined) {
+        time.push({
+          day:strArr[0],
+          time:[strArr[1]]
+        })
+      }
     }
-  })
+  });
 
   let otime={},wt=null,result=[];
 
@@ -182,6 +186,7 @@ fs.readdir(dirPath, (err,files)=>{
   console.log(files,files.indexOf('zq.xlsx'));
   let zqIndex = files.indexOf('zq.xlsx');
   files.map((item,index)=>{
+    console.log(`${dirPath}/${item}`);
     if(index!==zqIndex) {
       monthFiles.push(xlsx.parse(`${dirPath}/${item}`)[0]['data'])
     } else {
@@ -189,11 +194,16 @@ fs.readdir(dirPath, (err,files)=>{
     }
   });
 
+  console.log('had parse excel data');
+
   zqId = zqData.map(item=>{
     return item[0];
   });
 
   zqId.shift();
+
+  console.log('had get zq info');
+
 
   console.log(monthFiles.length,'monthFilesCount');
 
